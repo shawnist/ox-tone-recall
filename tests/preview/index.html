@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OX Tone Recall</title>
+  <style>
+    /* Styled after the OX app: grille top bar, brown panels, recessed displays, beveled buttons. */
+    :root {
+      color-scheme: dark;
+      --grille: #262422;
+      --brown: #43362a;
+      --brown-dark: #33291f;
+      --display: #24211e;
+      --label: #efe9df;
+      --display-text: #ddd8cf;
+      --quiet: #a99a86;
+      --orange: #f0a23a;
+      --led: #ffd23f;
+      --lit-cream: #fbf7ea;
+      --lit-red: #c8303a;
+      --din: "DIN Condensed", "Avenir Next Condensed", "Helvetica Neue", sans-serif;
+      --sans: "Helvetica Neue", Helvetica, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; background: linear-gradient(var(--brown), var(--brown-dark)); color: var(--label); font: 13px/1.4 var(--sans); }
+    :focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+    /* Beveled hardware buttons */
+    .hw { font: 700 15px/1 var(--din); letter-spacing: .02em; text-transform: uppercase; color: #262422; padding: 8px 12px 6px; border-radius: 3px; cursor: pointer;
+      background: linear-gradient(#e4e4e1, #b9b9b5); border: 1px solid #2a2622; box-shadow: inset 0 1px 0 #fff, inset 0 -2px 0 rgba(0,0,0,.18), 0 2px 3px rgba(0,0,0,.45); }
+    .hw:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
+    .hw:disabled { opacity: .45; cursor: default; }
+    .hw.lit { background: linear-gradient(#fffef8, var(--lit-cream)); box-shadow: inset 0 0 6px rgba(255,236,190,.9), 0 0 8px rgba(255,240,200,.35), 0 2px 3px rgba(0,0,0,.45); }
+    .hw.red { color: var(--lit-red); background: linear-gradient(#fff, #f6e4e4); border-color: #7a1f25; box-shadow: inset 0 0 0 2px rgba(200,48,58,.55), 0 2px 3px rgba(0,0,0,.45); }
+    .hw.small { font-size: 13px; padding: 6px 9px 4px; }
+
+    /* Recessed display boxes */
+    .display { background-color: var(--display); border: 1px solid #14120f; border-radius: 2px; box-shadow: inset 0 2px 5px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.06);
+      background-image: radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px); background-size: 3px 3px; }
+
+    /* Top bar */
+    .bar { display: flex; align-items: center; gap: 8px; padding: 9px 10px; background-color: var(--grille); border-bottom: 1px solid #000;
+      background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); }
+    .logo { font: 800 15px/1 var(--sans); letter-spacing: -.02em; color: var(--label); border: 2px solid var(--label); border-radius: 5px; padding: 2px 6px 3px; }
+    .conn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; font: 700 15px/1 var(--din); text-transform: uppercase; letter-spacing: .03em; color: var(--quiet); white-space: nowrap; overflow: hidden;
+      background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+    .conn #connText { overflow: hidden; text-overflow: ellipsis; }
+    .conn:hover #connText { text-decoration: underline dotted; text-underline-offset: 3px; }
+    .conn.on { color: var(--orange); }
+    .conn.bad { color: #e8776f; }
+    .led { width: 8px; height: 8px; border-radius: 50%; flex: none; background: #4a3f2d; box-shadow: inset 0 1px 2px rgba(0,0,0,.6); }
+    .led.on { background: radial-gradient(circle at 40% 35%, #fff4b8, var(--led) 60%, #c79600); box-shadow: 0 0 7px rgba(255,210,63,.7); }
+    .led.dim { background: transparent; border: 1.5px solid var(--led); box-shadow: none; }
+    .led.bad { background: #d9534a; }
+    .bar .menu { font: 700 15px/1 var(--din); letter-spacing: .03em; text-transform: uppercase; color: var(--display-text); background: none; border: 0; border-left: 1px dotted #5d564d; padding: 4px 0 2px 9px; cursor: pointer; }
+    .bar .menu:hover:not(:disabled) { color: var(--orange); }
+    .bar .menu:disabled { opacity: .4; cursor: default; }
+    .host { display: none; flex-direction: column; background: var(--grille); }
+    .host.open { display: flex; flex: 1; }
+    .host-label { font: 700 13px/1 var(--din); letter-spacing: .03em; text-transform: uppercase; color: var(--quiet); }
+    .host-row { display: flex; gap: 8px; }
+    .host-error { margin: 0; font-size: 12px; color: #f08a83; }
+    .host-note { margin: 0; font-size: 12px; color: var(--orange); }
+    .link-help { font-size: 12px; line-height: 1.45; color: var(--display-text); }
+    .link-help p { margin: 0 0 6px; }
+    .link-help b { color: var(--label); }
+    .host-note:empty, .host-found:empty { display: none; }
+    .host-found { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--quiet); }
+    .host-error:empty { display: none; }
+    .host-help { margin: 0; font-size: 11px; line-height: 1.45; color: #8a7d6c; }
+
+    input[type="text"] { font: 14px var(--sans); color: var(--display-text); padding: 8px 9px; min-width: 0; }
+    input[type="text"]::placeholder { color: #7c7368; }
+    input[type="text"]:focus { outline: 1px solid var(--orange); }
+    input[type="text"]:disabled { opacity: .5; }
+    .host input { flex: 1; }
+
+    /* Sections */
+    section { padding: 14px 12px; }
+    section + section { border-top: 1px solid #2a2119; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
+    h1, h2 { font: 700 21px/1 var(--din); letter-spacing: .02em; text-transform: uppercase; color: var(--label); margin: 0 0 10px; text-align: center; overflow-wrap: anywhere; }
+    h2 span { color: var(--quiet); }
+    .card { padding: 10px 11px; }
+    .card .pname { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0; cursor: text; font: 17px/1.25 var(--sans); color: var(--display-text); overflow-wrap: anywhere; }
+    .card.on-ox .pname { color: var(--orange); }
+    .card .state { display: flex; align-items: center; gap: 7px; margin-top: 6px; font: 700 13px/1 var(--din); letter-spacing: .03em; text-transform: uppercase; color: var(--quiet); }
+    .card.on-ox .state { color: var(--orange); }
+    .card .meta { font-size: 11px; color: #8a7d6c; margin-top: 4px; }
+    .card input.rename { width: 100%; font: 17px var(--sans); color: var(--orange); background: #15130f; border: 0; outline: 1px solid var(--orange); padding: 2px 5px; }
+    .save-row { display: flex; gap: 8px; align-items: stretch; }
+    .save-row input { flex: 1; }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+    .confirm { margin-top: 10px; text-align: center; font-size: 12px; color: var(--display-text); }
+    .confirm .actions { margin-top: 7px; }
+    .hint { color: var(--quiet); font-size: 12px; margin: 9px 0 0; text-align: center; }
+    .message { margin: 8px 0 0; font-size: 12px; text-align: center; color: var(--orange); }
+    .message.bad { color: #f08a83; }
+    .hint:empty, .message:empty { display: none; }
+
+    /* Preset list: like the OX app's master column */
+    .preset { margin-top: 6px; }
+    .preset .line { display: flex; align-items: center; gap: 8px; padding: 8px 9px; }
+    .preset.focused .line { outline: 1px solid #7a6a55; }
+    .preset .pick { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; }
+    .preset .pname { display: block; font: 15px/1.25 var(--sans); color: var(--display-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preset.on-ox .pname { color: var(--orange); }
+    .preset .sub { display: block; font: 700 13px/1.1 var(--din); text-transform: uppercase; letter-spacing: .03em; color: var(--quiet); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preset .status { font: 700 12px/1 var(--din); text-transform: uppercase; letter-spacing: .03em; color: var(--quiet); white-space: nowrap; }
+    .preset .tools { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; padding: 9px 0 3px; }
+    .preset .tools .ask { width: 100%; text-align: center; font-size: 12px; color: var(--display-text); }
+    .preset .rename { width: 100%; font: 15px var(--sans); color: var(--orange); background: #15130f; border: 0; outline: 1px solid var(--orange); padding: 2px 5px; }
+    .empty { text-align: center; color: var(--quiet); margin: 2px 0 0; }
+
+    /* What the OX is on, and what recording will do: always visible, never a popup */
+    .ampline { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #2b241d; border-bottom: 1px solid #000; font-size: 12px; color: var(--quiet); }
+    .ampline b { color: var(--display-text); font-weight: 600; }
+    .status { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #1d1b19; border-bottom: 1px solid #000; font: 700 13px/1.15 var(--din); letter-spacing: .03em; text-transform: uppercase; color: var(--quiet); min-height: 31px; }
+    .status.saving { color: var(--orange); }
+    .status.warn { color: #f08a83; }
+    .status.recording { color: #ffb3b5; }
+    .led.rec { background: radial-gradient(circle at 40% 35%, #ffb3b5, #e5484d 60%, #8f1b1f); box-shadow: 0 0 7px rgba(229,72,77,.8); animation: blink 1s steps(2) infinite; }
+    @keyframes blink { 50% { opacity: .35; } }
+
+    /* The selected track or clip */
+    .heading { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 10px; }
+    .heading h1 { margin: 0; }
+    .chip { font: 700 11px/1 var(--din); letter-spacing: .08em; text-transform: uppercase; color: #1b1714; background: var(--quiet); border-radius: 2px; padding: 3px 5px 2px; flex: none; }
+    .chip.is-clip { background: #7fb6cf; }
+    .kicker { font: 700 12px/1 var(--din); letter-spacing: .06em; text-transform: uppercase; color: var(--quiet); margin: 0 0 5px; }
+    .card .pname.none { color: var(--quiet); font-size: 15px; cursor: default; }
+    .differs { display: flex; gap: 7px; align-items: flex-start; margin-top: 9px; padding: 7px 8px; border-left: 2px solid #7fc4e8; background: rgba(127,196,232,.08); color: #cfe9f6; font-size: 12px; line-height: 1.35; }
+    .differs .badge { font: 800 9px/1 var(--sans); color: #7fc4e8; border: 1px solid #7fc4e8; border-radius: 3px; padding: 2px 3px; margin-top: 1px; }
+    .why { text-align: center; font-size: 11px; color: #e8a49e; margin-top: 6px; }
+    .explain { color: var(--quiet); font-size: 12px; text-align: center; margin: 8px 0 0; line-height: 1.45; }
+    .center { text-align: center; margin-top: 10px; }
+    .linkish { font: inherit; font-size: 11px; color: #8a7d6c; background: none; border: 0; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; padding: 0; }
+    .save-row { margin-top: 8px; }
+
+    /* OX tracks list */
+    .row { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 9px; margin-top: 6px; cursor: pointer; text-align: left; color: inherit; font: inherit; }
+    .row.focused { outline: 1px solid #7a6a55; }
+    .row .t { flex: 1; min-width: 0; }
+    .row .n { display: block; font: 15px/1.25 var(--sans); color: var(--display-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row .s { display: block; font: 700 12px/1.1 var(--din); text-transform: uppercase; letter-spacing: .03em; color: var(--quiet); margin-top: 3px; }
+    .row.on-ox .n { color: var(--orange); }
+
+
+    /* What the OX is on, then the tracks that use the OX */
+    .bar .gear { font-size: 17px; color: var(--display-text); background: none; border: 0; padding: 2px 6px; cursor: pointer; border-radius: 4px; }
+    .bar .gear:hover { color: var(--orange); }
+    .bar .gear.help { display: inline-flex; align-items: center; justify-content: center; padding: 2px 4px; }
+    .bar .gear.help svg { display: block; width: 16px; height: 16px; }
+    /* Help: a short guide, opened from the ? beside setup */
+    .guide p, .guide ol { margin: 0; font-size: 12px; line-height: 1.45; color: var(--display-text); }
+    .guide ol { padding-left: 18px; }
+    .guide li + li { margin-top: 4px; }
+    .guide b { color: var(--label); }
+    .guide .legend { display: flex; align-items: baseline; gap: 8px; }
+    .guide .legend .key { flex: none; width: 78px; }
+    .guide .legend .led { display: inline-block; }
+    .guide .hw, .link-help .hw { margin: 0 3px 2px 0; }
+    /* Help and Setup are pages of their own: one takes over the panel, and Back returns to the tracks. */
+    body.paged .bar, body.paged .nowline, body.paged .list { display: none; }
+    .pagebar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 10px; padding: 9px 10px; background: #1b1917; border-bottom: 1px solid #000; }
+    .pagebar .ttl { font: 700 20px/1 var(--din); letter-spacing: .03em; text-transform: uppercase; color: var(--label); }
+    .pagebody { display: flex; flex-direction: column; padding: 0 12px 12px; }
+    .pagebody > .sec:first-child { border-top: 0; }
+    .sec { padding: 10px 0; border-top: 1px solid #3a3029; display: flex; flex-direction: column; gap: 6px; }
+    .sec .kicker { margin: 0; }
+    .nowline { padding: 7px 12px; background: #2b241d; border-bottom: 1px solid #000; font-size: 12px; color: var(--quiet); }
+    .nowline b { color: var(--display-text); font-weight: 600; }
+    .nowline.bad { background: #3a1d1f; color: #ffb3b5; }
+    .nowline .linkish { color: #ffd6d7; font-size: 12px; margin-left: 4px; }
+    .list { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
+    /* One box per OX track: name, lamp, Save to track and Recall on one line; its clips open inside it */
+    .grp { padding: 8px 10px; }
+    .grp.picked { outline: 1px solid #a08a6c; }
+    .rtop { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 9px; min-height: 28px; }
+    .rh { flex: 1 0 auto; max-width: 100%; min-width: 0; display: flex; align-items: center; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: left; color: var(--label); font: 700 17px/1.2 var(--din); letter-spacing: .04em; text-transform: uppercase; }
+    .rh .chev { flex: none; width: 13px; font-size: 11px; color: var(--quiet); }
+    .rh .rname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .grp.is-on .rname { color: var(--orange); }
+    .rright { flex: none; display: inline-flex; align-items: center; gap: 9px; }
+    .rright:empty { display: none; }
+    .ract { flex: none; display: inline-flex; gap: 8px; margin-left: auto; }
+    .ract .hw.small { padding: 6px 8px 4px; }
+    .lamp { display: inline-flex; align-items: center; gap: 6px; font: 700 12px/1 var(--din); letter-spacing: .06em; text-transform: uppercase; color: var(--quiet); white-space: nowrap; }
+    .lamp.on { color: var(--orange); }
+    .lamp.changed { color: #e0b46a; }
+    .rsub { margin: 2px 0 0 13px; font-size: 12px; color: var(--quiet); }
+    .under { margin: 5px 0 0 13px; }
+    .what { font-size: 12px; color: var(--display-text); }
+    .diffs { margin: 5px 0 2px; padding: 6px 9px; background: rgba(0,0,0,.28); border: 1px solid #2a2119; border-radius: 3px; font: 12px/1.4 var(--sans); letter-spacing: 0; text-transform: none; color: #cfe9f6; }
+    .clips { margin-top: 8px; padding-top: 4px; border-top: 1px solid #332c25; max-height: 164px; overflow-y: auto; }
+    .cl { display: flex; align-items: center; gap: 8px; min-height: 26px; padding: 1px 10px 1px 13px; border-radius: 3px; font: 700 13px/1.2 var(--din); letter-spacing: .04em; text-transform: uppercase; color: var(--quiet); }
+    .cl .cn { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cl.sel { background: rgba(255,255,255,.07); color: var(--label); }
+    .cl.is-on .cn { color: var(--orange); }
+    .cl.rec .cn { color: #ffb3b5; }
+    .cl .led { width: 7px; height: 7px; }
+    .cl .note { font: 11px/1 var(--sans); letter-spacing: 0; text-transform: none; color: #8a7d6c; white-space: nowrap; }
+    .cst { font-size: 11px; letter-spacing: .06em; color: #e0b46a; }
+    .hw.mini { font-size: 11px; padding: 4px 6px 3px; box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,.45); }
+    .hw.mini.lit { box-shadow: inset 0 0 5px rgba(255,236,190,.9), 0 1px 2px rgba(0,0,0,.45); }
+    .cunder { padding: 2px 0 5px 13px; }
+    .rtools { margin-top: 8px; padding: 7px 10px 0 13px; border-top: 1px solid #332c25; }
+    .rtools .linkish { font-size: 12px; }
+    .linkish:disabled { opacity: .45; cursor: default; }
+    .rectag { display: inline-block; flex: none; margin-left: 7px; font: 700 10px/1 var(--din); letter-spacing: .06em; color: #fff; background: #c8303a; border-radius: 2px; padding: 2px 4px 1px; }
+    /* The selected track that isn't linked: a dashed slot where it will sit once it is. */
+    .divider { display: flex; align-items: center; gap: 8px; margin: 6px 2px 0; font: 700 11px/1 var(--din); letter-spacing: .08em; text-transform: uppercase; color: #8a7d6c; }
+    .divider::after { content: ""; flex: 1; border-top: 1px solid #4a3d30; }
+    .grp.cand { background: transparent; border: 1.5px dashed #8b7960; box-shadow: none; }
+    .grp.cand .rh { cursor: default; color: var(--display-text); }
+    .pill { flex: none; font: 700 10px/1 var(--din); letter-spacing: .07em; text-transform: uppercase; color: var(--quiet); border: 1px solid #6b5d4a; border-radius: 2px; padding: 3px 5px 2px; white-space: nowrap; }
+    .led.half { background: linear-gradient(90deg, var(--led) 50%, transparent 50%); border: 1.5px solid var(--led); box-shadow: none; }
+    .led.recdot { background: #e5484d; box-shadow: 0 0 7px rgba(229,72,77,.8); animation: blink 1s steps(2) infinite; }
+    .list .empty { margin: 8px 4px; line-height: 1.5; }
+    /* Steel strip at the bottom, like the OX app's mixer row */
+    footer { margin-top: auto; padding: 10px 12px; background: linear-gradient(#d3d3d0, #b7b7b3); border-top: 2px solid #e6e6e3; color: #2c2925; font: 700 13px/1.2 var(--din); text-transform: uppercase; letter-spacing: .02em; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <span class="logo" aria-hidden="true">ox</span>
+    <button class="conn" id="conn" aria-controls="host"><span class="led" id="jewel"></span><span id="connText">Looking for the OX</span></button>
+    <button class="gear help" id="helpToggle" aria-expanded="false" aria-controls="help" title="Help" aria-label="Help"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="7.75"/><path d="M6.9 7.1a2.1 2.1 0 1 1 3.3 1.7c-.7.5-1.2.9-1.2 1.8"/><circle cx="9" cy="13.1" r=".55" fill="currentColor"/></svg></button>
+    <button class="gear" id="hostToggle" aria-expanded="false" aria-controls="host" title="Setup" aria-label="Setup">⚙</button>
+  </div>
+
+  <div class="host" id="help">
+    <div class="pagebar"><button class="hw small lit" id="helpDone" aria-label="Back to the tracks">‹ Back</button><span class="ttl">Help</span></div>
+    <div class="pagebody">
+    <div class="sec guide">
+      <div class="kicker">Start</div>
+      <ol>
+        <li>Select a guitar track in LUNA. It appears here in a dashed row marked Not linked.</li>
+        <li>Press <b>Link track</b> on that row. The track joins the list, and the sound the OX is on is saved as that track's sound.</li>
+        <li>Record. Every clip recorded on that track keeps the sound it was recorded with. Keep this panel open while you record.</li>
+      </ol>
+      <p>Dial in sounds in the OX app as usual. This panel never changes your OX unless you press Recall.</p>
+    </div>
+    <div class="sec guide">
+      <div class="kicker">The lamp</div>
+      <p class="legend"><span class="key"><span class="lamp on"><span class="led on"></span>On the OX</span></span><span>The OX is on exactly this sound.</span></p>
+      <p class="legend"><span class="key"><span class="lamp changed"><span class="led half"></span>Changed</span></span><span>You recalled this sound, then changed something on the OX.</span></p>
+      <p class="legend"><span class="key"><span class="lamp"><span class="led"></span>Unlit</span></span><span>The OX is on something else.</span></p>
+      <p>The lamp compares the actual settings, not a name, so two sounds only match when they really are the same.</p>
+    </div>
+    <div class="sec guide">
+      <div class="kicker">The two buttons</div>
+      <p><b>Recall</b> puts a track's or a clip's sound on the OX. It is the only thing here that changes the OX, and it is off while recording.</p>
+      <p><b>Save to track</b> keeps what the OX is on now as the sound of the track selected in LUNA. It appears only when the OX isn't already on that track's sound. LUNA's Undo reverses it.</p>
+    </div>
+    <div class="sec guide">
+      <div class="kicker">Clips</div>
+      <p>Click a track's name to open it and see its clips. Selecting a clip in LUNA opens its track for you.</p>
+      <p>A clip's sound is what the OX was on when it was recorded, and it never changes. Press its Recall to get that sound back, for example before punching in.</p>
+      <p>To make a clip's sound the track's sound, Recall the clip, then press Save to track.</p>
+      <p><b>OX was offline</b> means the OX couldn't be reached during that recording, so no sound was saved with it.</p>
+    </div>
+    <div class="sec guide" id="linkGuide">
+      <div class="kicker">OX Link, and reaching your OX</div>
+      <p>Inside LUNA this panel reaches your OX through <b>OX Link</b>, a small app that comes with this add-on and sits in the Mac's menu bar. LUNA only lets add-ons talk to this Mac, so without OX Link the panel can't see the OX.</p>
+      <p><b>If the red line says OX Link isn't running:</b> <button class="hw small start-link">Start OX Link</button></p>
+      <p>The first time, macOS asks whether OX Link may find devices on your local network. Click Allow. OX Link starts at login after that (its menu has Start at Login), and this panel connects by itself within a few seconds.</p>
+      <p><b>OX Link is running but the panel still can't reach the OX?</b> Check the OX is switched on and on the same network as this Mac. OX Link's menu shows the OX it has found. If you clicked Don't Allow, turn OX Link on in System Settings › Privacy &amp; Security › Local Network.</p>
+    </div>
+    <div class="sec guide">
+      <div class="kicker">More</div>
+      <p><b>What changed</b> appears under a Changed lamp and lists which parts of the OX differ, such as EQ or Cab and mics.</p>
+      <p><b>Unlink a track:</b> click the track's name to open it, then press Unlink track from OX Recall. Its saved sounds are kept.</p>
+    </div>
+    </div>
+  </div>
+
+  <div class="host" id="host">
+    <div class="pagebar"><button class="hw small lit" id="hostDone" aria-label="Back to the tracks">‹ Back</button><span class="ttl">Setup</span></div>
+    <div class="pagebody">
+    <div class="sec">
+      <div class="kicker">Connection</div>
+      <div class="link-help" id="linkHelp" hidden>
+        <p><b>OX Link isn't running.</b> LUNA only lets add-ons talk to this Mac, so OX Link, a small app that comes with this add-on and sits in the menu bar, connects this panel to your OX.</p>
+        <p><button class="hw small lit start-link">Start OX Link</button></p>
+        <p class="host-note">The first time, macOS asks whether OX Link may find devices on your local network. Click Allow. OX Link starts at login after that, and this panel connects by itself once it is running.</p>
+      </div>
+      <label class="host-label" id="hostLabel" for="oxHost">Your OX</label>
+      <div class="host-row" id="hostRow">
+        <input type="text" class="display" id="oxHost" spellcheck="false" autocomplete="off" placeholder="OX001234 or 192.168.1.40" aria-describedby="hostHelp hostError">
+        <button class="hw small" id="oxConnect">Connect</button>
+        <button class="hw small" id="oxFind">Find</button>
+      </div>
+      <p class="host-note" id="hostNote" role="status"></p>
+      <div class="host-found" id="hostFound"></div>
+      <p class="host-error" id="hostError" role="alert"></p>
+      <p class="host-help" id="hostHelp">Found automatically. Type its name (such as OX001234) or IP address only if it isn't.</p>
+    </div>
+    <div class="sec"><button class="hw small" id="openApp">Open OX app</button></div>
+    </div>
+  </div>
+
+  <div class="nowline" id="nowline" role="status"></div>
+  <div class="list" id="list"></div>
+  <p class="message" id="message" role="status"></p>
+
+  <script src="fixture.js"></script>
+  <script src="../../vendor/luna.global.js"></script>
+  <script src="../../ox.js"></script>
+  <script src="../../logic.js"></script>
+  <script src="../../main.js"></script>
+</body>
+</html>

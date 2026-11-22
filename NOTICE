@@ -1,0 +1,12 @@
+OX Tone Recall
+Copyright (c) 2026 Shawn Rasson. Licensed under the MIT License; see LICENSE.
+
+This project includes work by others:
+
+- vendor/luna.global.js and tests/sdk-luna-builder-3.1.2/ are the LUNA Builder SDK
+  (@uaudio/luna-builder-sdk 3.1.2), Copyright 2026 Universal Audio, Inc., licensed under the
+  Apache License, Version 2.0. Its licence and notice are in vendor/LICENSE.txt and
+  vendor/NOTICE.txt, and in tests/sdk-luna-builder-3.1.2/.
+
+It also carries a built copy of OX Link 0.1.0 (link/OX Link.zip), Copyright (c) 2026 Shawn Rasson,
+licensed under the MIT License.

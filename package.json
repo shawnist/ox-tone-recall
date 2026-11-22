@@ -1,0 +1,20 @@
+{
+  "name": "ox_tone_recall",
+  "private": true,
+  "license": "MIT",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OX Tone Recall, a LUNA Add On built with @uaudio/luna-builder-sdk",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "serve": "ua-builder serve",
+    "install-addon": "ua-builder install",
+    "pack": "sh scripts/pack.sh"
+  },
+  "devDependencies": {
+    "@uaudio/luna-builder-sdk": "file:tests/sdk-luna-builder-3.1.2",
+    "vite": "8.3.0",
+    "vitest": "5.0.1"
+  }
+}

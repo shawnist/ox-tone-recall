@@ -1,0 +1,15 @@
+{
+    "package_name": "OX Tone Recall",
+    "id": "com.shawnrasson.ox-tone-recall",
+    "title": "OX Tone Recall",
+    "version": "0.1.0",
+    "manufacturer": "Shawn Rasson",
+    "description": "Saves the OX Amp Top Box's sound with each track and clip you record, shows which sound the OX is on, and recalls a saved sound onto the OX.",
+    "categories": ["Recording"],
+    "sdk_version": "3.1.2",
+    "min_luna_version": "3.1.2",
+    "engines": ["luna"],
+    "html": "index.html",
+    "icon": "icon.png",
+    "target": "browser"
+}
