@@ -53,7 +53,7 @@ There is a short guide inside the panel too, behind the **?** button.
 - Only **Recall** writes to the OX. It sets the tone: the EQ, compressor, delay, reverb, channel levels, and the cabinet, microphone and room choices.
 - It never changes speaker impedance or attenuation, outputs, Wi-Fi, firmware, or anything that resets the OX.
 - Your saved sounds live inside the LUNA session, so they travel with it.
-- OX Link listens only on your own Mac, connects only to an OX it found on your network, and sends nothing to the internet.
+- OX Link listens only on your own Mac, connects only to an OX it found on your network, and sends nothing to the internet. Its source is at [shawnist/ox-link](https://github.com/shawnist/ox-link).
 
 ## If something isn't working
 

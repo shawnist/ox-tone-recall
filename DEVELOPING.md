@@ -117,10 +117,10 @@ press Recall).
 
 ## Publishing
 
-This repo is the workshop. It keeps the full history and stays private. The public repo,
-`shawnist/ox-tone-recall`, has its own history that started from one clean commit, with one commit
-for each published version. This repo's history never goes there, so never `git push` one of its
-branches to the public repo.
+For the maintainer. Development happens in a separate private repo that keeps the full history.
+The public repo, `shawnist/ox-tone-recall`, has its own history: it started from one clean
+commit and gets one commit for each published version. The private history never goes there, so
+never `git push` one of its branches to the public repo.
 
 ```sh
 scripts/publish.sh "Version 0.1.1"     # the files of the commit you are on, as one new public commit
